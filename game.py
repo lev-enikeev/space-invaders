@@ -1,32 +1,9 @@
+from telnetlib import GA
 import time
 import math
 import pygame
 import random
 
-# global variables
-running = True
-pause_state = 0
-score = 0
-highest_score = 0
-life = 3
-kills = 0
-difficulty = 1
-level = 1
-max_kills_to_difficulty_up = 5
-max_difficulty_to_level_up = 5
-initial_player_velocity = 3.0
-initial_enemy_velocity = 1.0
-weapon_shot_velocity = 5.0
-single_frame_rendering_time = 0
-total_time = 0
-frame_count = 0
-fps = 0
-
-# game objects
-player = type('Player', (), {})()
-bullet = type('Bullet', (), {})()
-enemies = []
-lasers = []
 
 # initialize pygame
 pygame.init()
@@ -100,7 +77,6 @@ class Laser:
             self.display.blit(self.img, (self.x, self.y))
 
 
-
 class Game:
     def __init__(self, w=800, h=600):
         self.h = h
@@ -112,19 +88,41 @@ class Game:
         self.reset()
 
     def reset(self):
-    
+        self.running = True
+        self.pause_state = 0
+        self.score = 0
+        self.highest_score = 0
+        self.life = 3
+        self.kills = 0
+        self.difficulty = 1
+        self.level = 1
+        self.max_kills_to_difficulty_up = 5
+        self.max_difficulty_to_level_up = 5
+        self.initial_player_velocity = 3.0
+        self.initial_enemy_velocity = 1.0
+        self.weapon_shot_velocity = 5.0
+        self.single_frame_rendering_time = 0
+        self.total_time = 0
+        self.frame_count = 0
+        self.fps = 0
+
+        # game objects
+        self.player = type('Player', (), {})()
+        self.bullet = type('Bullet', (), {})()
+        self.enemies = []
+        self.lasers = []
+
         # player
         player_img_path = "res/images/spaceship.png"  # 64 x 64 px image
         player_width = 64
         player_height = 64
         player_x = (self.w / 2) - (player_width / 2)
         player_y = (self.h / 10) * 9 - (player_height / 2)
-        player_dx = initial_player_velocity
+        player_dx = self.initial_player_velocity
         player_dy = 0
 
-        global player
-        player = Player(player_img_path, player_width, player_height,
-                        player_x, player_y, player_dx, player_dy)
+        self.player = Player(player_img_path, player_width, player_height,
+                             player_x, player_y, player_dx, player_dy)
 
         # bullet
         bullet_img_path = "res/images/bullet.png"  # 32 x 32 px image
@@ -133,17 +131,16 @@ class Game:
         bullet_x = player_x + player_width / 2 - bullet_width / 2
         bullet_y = player_y + bullet_height / 2
         bullet_dx = 0
-        bullet_dy = weapon_shot_velocity
+        bullet_dy = self.weapon_shot_velocity
 
-        global bullet
-        bullet = Bullet(bullet_img_path, bullet_width, bullet_height,
-                        bullet_x, bullet_y, bullet_dx, bullet_dy)
+        self.bullet = Bullet(bullet_img_path, bullet_width, bullet_height,
+                             bullet_x, bullet_y, bullet_dx, bullet_dy)
 
         # enemy (number of enemy = level number)
         enemy_img_path = "res/images/enemy.png"  # 64 x 64 px image
         enemy_width = 64
         enemy_height = 64
-        enemy_dx = initial_enemy_velocity
+        enemy_dx = self.initial_enemy_velocity
         enemy_dy = (self.h / 10) / 2
 
         # laser beam (equals number of enemies and retains corresponding enemy position)
@@ -151,17 +148,14 @@ class Game:
         laser_width = 24
         laser_height = 24
         laser_dx = 0
-        laser_dy = weapon_shot_velocity
+        laser_dy = self.weapon_shot_velocity
         shoot_probability = 0.3
         relaxation_time = 100
 
-        global enemies
-        global lasers
+        self.enemies.clear()
+        self.lasers.clear()
 
-        enemies.clear()
-        lasers.clear()
-
-        for lev in range(level):
+        for lev in range(self.level):
             enemy_x = random.randint(0, (self.w - enemy_width))
             enemy_y = random.randint(
                 ((self.h / 10) * 1 - (enemy_height / 2)), ((self.h / 10) * 4 - (enemy_height / 2)))
@@ -169,14 +163,13 @@ class Game:
             laser_y = enemy_y + laser_height / 2
 
             enemy_obj = Enemy(enemy_img_path, enemy_width,
-                            enemy_height, enemy_x, enemy_y, enemy_dx, enemy_dy)
-            enemies.append(enemy_obj)
+                              enemy_height, enemy_x, enemy_y, enemy_dx, enemy_dy)
+            self.enemies.append(enemy_obj)
 
             laser_obj = Laser(laser_img_path, laser_width, laser_height, laser_x, laser_y, laser_dx, laser_dy,
-                            shoot_probability, relaxation_time)
-            lasers.append(laser_obj)
+                              shoot_probability, relaxation_time)
+            self.lasers.append(laser_obj)
 
-    
     def scoreboard(self):
         x_offset = 10
         y_offset = 10
@@ -184,18 +177,21 @@ class Game:
         font = pygame.font.SysFont("calibre", 16)
 
         # render font and text sprites
-        score_sprint = font.render("SCORE : " + str(score), True, (255, 255, 255))
+        score_sprint = font.render(
+            "SCORE : " + str(self.score), True, (255, 255, 255))
         highest_score_sprint = font.render(
-            "HI-SCORE : " + str(highest_score), True, (255, 255, 255))
-        level_sprint = font.render("LEVEL : " + str(level), True, (255, 255, 255))
+            "HI-SCORE : " + str(self.highest_score), True, (255, 255, 255))
+        level_sprint = font.render(
+            "LEVEL : " + str(self.level), True, (255, 255, 255))
         difficulty_sprint = font.render(
-            "DIFFICULTY : " + str(difficulty), True, (255, 255, 255))
+            "DIFFICULTY : " + str(self.difficulty), True, (255, 255, 255))
         life_sprint = font.render(
-            "LIFE LEFT : " + str(life) + " | " + ("@ " * life), True, (255, 255, 255))
+            "LIFE LEFT : " + str(self.life) + " | " + ("@ " * self.life), True, (255, 255, 255))
 
         # performance info
-        fps_sprint = font.render("FPS : " + str(fps), True, (255, 255, 255))
-        frame_time_in_ms = round(single_frame_rendering_time * 1000, 2)
+        fps_sprint = font.render(
+            "FPS : " + str(self.fps), True, (255, 255, 255))
+        frame_time_in_ms = round(self.single_frame_rendering_time * 1000, 2)
         frame_time_sprint = font.render(
             "FT : " + str(frame_time_in_ms) + " ms", True, (255, 255, 255))
 
@@ -208,31 +204,24 @@ class Game:
         self.display.blit(fps_sprint, (self.w - 80, y_offset))
         self.display.blit(frame_time_sprint, (self.w - 80, y_offset + 20))
 
-
     def collision_check(self, object1, object2):
         x1_cm = object1.x + object1.width / 2
         y1_cm = object1.y + object1.width / 2
         x2_cm = object2.x + object2.width / 2
         y2_cm = object2.y + object2.width / 2
         distance = math.sqrt(math.pow((x2_cm - x1_cm), 2) +
-                            math.pow((y2_cm - y1_cm), 2))
+                             math.pow((y2_cm - y1_cm), 2))
         return distance < ((object1.width + object2.width) / 2)
 
-
     def level_up(self):
-        global life
-        global level
-        global difficulty
-        global max_difficulty_to_level_up
-
-        level += 1
-        life += 1       # grant a life
-        difficulty = 1
-        if level % 3 == 0:
-            player.dx += 1
-            bullet.dy += 1
+        self.level += 1
+        self.life += 1       # grant a life
+        self.difficulty = 1
+        if self.level % 3 == 0:
+            self.player.dx += 1
+            self.bullet.dy += 1
             max_difficulty_to_level_up += 1
-            for each_laser in lasers:
+            for each_laser in self.lasers:
                 each_laser.shoot_probability += 0.1
                 if each_laser.shoot_probability > 1.0:
                     each_laser.shoot_probability = 1.0
@@ -246,34 +235,25 @@ class Game:
         self.reset()
         time.sleep(1.0)
 
-
     def respawn(self, enemy_obj):
         enemy_obj.x = random.randint(0, (self.w - enemy_obj.width))
         enemy_obj.y = random.randint(((self.h / 10) * 1 - (enemy_obj.height / 2)),
-                                    ((self.h / 10) * 4 - (enemy_obj.height / 2)))
-
+                                     ((self.h / 10) * 4 - (enemy_obj.height / 2)))
 
     def kill_enemy(self, player_obj, bullet_obj, enemy_obj):
-        global score
-        global kills
-        global difficulty
-        bullet_obj.fired = False
-
         bullet_obj.x = player_obj.x + player_obj.width / 2 - bullet_obj.width / 2
         bullet_obj.y = player_obj.y + bullet_obj.height / 2
-        score = score + 10 * difficulty * level
-        kills += 1
-        if kills % max_kills_to_difficulty_up == 0:
-            difficulty += 1
-            if (difficulty == max_difficulty_to_level_up) and (life != 0):
+        self.score = self.score + 10 * self.difficulty * self.level
+        self.kills += 1
+        if self.kills % self.max_kills_to_difficulty_up == 0:
+            self.difficulty += 1
+            if (self.difficulty == self.max_difficulty_to_level_up) and (self.life != 0):
                 self.level_up()
         self.respawn(enemy_obj)
-
 
     def rebirth(self, player_obj):
         player_obj.x = (self.w / 2) - (player_obj.width / 2)
         player_obj.y = (self.h / 10) * 9 - (player_obj.height / 2)
-
 
     def gameover_screen(self):
         self.scoreboard()
@@ -284,30 +264,23 @@ class Game:
 
         time.sleep(13.0)
 
-
     def gameover(self):
-        global running
-        global score
-
-        if score > highest_score:
-            highest_score = score
+        if self.score > highest_score:
+            highest_score = self.score
 
         running = False
         self.gameover_screen()
 
-
     def kill_player(self, player_obj, enemy_obj, laser_obj):
-        global life
         laser_obj.beamed = False
         laser_obj.x = enemy_obj.x + enemy_obj.width / 2 - laser_obj.width / 2
         laser_obj.y = enemy_obj.y + laser_obj.height / 2
-        life -= 1
-        print("Life Left:", life)
-        if life > 0:
+        self.life -= 1
+        print("Life Left:", self.life)
+        if self.life > 0:
             self.rebirth(player_obj)
         else:
             self.gameover()
-
 
     def destroy_weapons(self, player_obj, bullet_obj, enemy_obj, laser_obj):
         bullet_obj.fired = False
@@ -317,14 +290,12 @@ class Game:
         laser_obj.x = enemy_obj.x + enemy_obj.width / 2 - laser_obj.width / 2
         laser_obj.y = enemy_obj.y + laser_obj.height / 2
 
-
     def pause_game(self):
         self.scoreboard()
         font = pygame.font.SysFont("freesansbold", 64)
         gameover_sprint = font.render("PAUSED", True, (255, 255, 255))
         self.display.blit(gameover_sprint, (self.w / 2 - 80, self.h / 2 - 32))
         pygame.display.update()
-
 
     def play_step(self):
         self.display.fill((0, 0, 0))
@@ -365,79 +336,87 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     ESC_KEY_PRESSED = 0
 
-        if pause_state == 2:
+        if self.pause_state == 2:
             pause_state = 0
             runned_once = False
 
-        if pause_state == 1:
+        if self.pause_state == 1:
             if not runned_once:
                 runned_once = True
-                pause_game()
-            continue
+                self.pause_game()
+            return
         # manipulate game objects based on events and player actions
         # player spaceship movement
         if RIGHT_ARROW_KEY_PRESSED:
-            player.x += player.dx
+            self.player.x += self.player.dx
         if LEFT_ARROW_KEY_PRESSED:
-            player.x -= player.dx
+            self.player.x -= self.player.dx
         # bullet firing
-        if (SPACE_BAR_PRESSED or UP_ARROW_KEY_PRESSED) and not bullet.fired:
-            bullet.fired = True
-            bullet.x = player.x + player.width / 2 - bullet.width / 2
-            bullet.y = player.y + bullet.height / 2
+        if (SPACE_BAR_PRESSED or UP_ARROW_KEY_PRESSED) and not self.bullet.fired:
+            self.bullet.fired = True
+            self.bullet.x = self.player.x + self.player.width / 2 - self.bullet.width / 2
+            self.bullet.y = self.player.y + self.bullet.height / 2
         # bullet movement
-        if bullet.fired:
-            bullet.y -= bullet.dy
+        if self.bullet.fired:
+            self.bullet.y -= self.bullet.dy
 
-        # iter through every enemies and lasers
-        for i in range(len(enemies)):
+        # iter through every enemies and self.lasers
+        for i in range(len(self.enemies)):
             # laser beaming
-            if not lasers[i].beamed:
-                lasers[i].shoot_timer += 1
-                if lasers[i].shoot_timer == lasers[i].relaxation_time:
-                    lasers[i].shoot_timer = 0
+            if not self.lasers[i].beamed:
+                self.lasers[i].shoot_timer += 1
+                if self.lasers[i].shoot_timer == self.lasers[i].relaxation_time:
+                    self.lasers[i].shoot_timer = 0
                     random_chance = random.randint(0, 100)
-                    if random_chance <= (lasers[i].shoot_probability * 100):
-                        lasers[i].beamed = True
-                        lasers[i].x = enemies[i].x + \
-                            enemies[i].width / 2 - lasers[i].width / 2
-                        lasers[i].y = enemies[i].y + lasers[i].height / 2
+                    if random_chance <= (self.lasers[i].shoot_probability * 100):
+                        self.lasers[i].beamed = True
+                        self.lasers[i].x = self.enemies[i].x + \
+                            self.enemies[i].width / 2 - \
+                            self.lasers[i].width / 2
+                        self.lasers[i].y = self.enemies[i].y + \
+                            self.lasers[i].height / 2
             # enemy movement
-            enemies[i].x += enemies[i].dx * float(2 ** (difficulty - 1))
+            self.enemies[i].x += self.enemies[i].dx * \
+                float(2 ** (difficulty - 1))
             # laser movement
-            if lasers[i].beamed:
-                lasers[i].y += lasers[i].dy
+            if self.lasers[i].beamed:
+                self.lasers[i].y += self.lasers[i].dy
 
         # collision check
-        for i in range(len(enemies)):
-            bullet_enemy_collision = self.collision_check(bullet, enemies[i])
+        for i in range(len(self.enemies)):
+            bullet_enemy_collision = self.collision_check(
+                self.bullet, self.enemies[i])
             if bullet_enemy_collision:
-                self.kill_enemy(player, bullet, enemies[i])
+                self.kill_enemy(self.player, self.bullet, self.enemies[i])
 
-        for i in range(len(lasers)):
-            laser_player_collision = collision_check(lasers[i], player)
+        for i in range(len(self.lasers)):
+            laser_player_collision = self.collision_check(
+                self.lasers[i], self.player)
             if laser_player_collision:
-                kill_player(player, enemies[i], lasers[i])
+                self.kill_player(self.player, self.enemies[i], self.lasers[i])
 
-        for i in range(len(enemies)):
-            enemy_player_collision = collision_check(enemies[i], player)
+        for i in range(len(self.enemies)):
+            enemy_player_collision = self.collision_check(
+                self.enemies[i], self.player)
             if enemy_player_collision:
-                kill_enemy(player, bullet, enemies[i])
-                kill_player(player, enemies[i], lasers[i])
+                self.kill_enemy(self.player, self.bullet, self.enemies[i])
+                self.kill_player(self.player, self.enemies[i], self.lasers[i])
 
-        for i in range(len(lasers)):
-            bullet_laser_collision = collision_check(bullet, lasers[i])
+        for i in range(len(self.lasers)):
+            bullet_laser_collision = self.collision_check(
+                self.bullet, self.lasers[i])
             if bullet_laser_collision:
-                destroy_weapons(player, bullet, enemies[i], lasers[i])
+                self.destroy_weapons(
+                    self.player, self.bullet, self.enemies[i], self.lasers[i])
 
         # boundary check: 0 <= x <= self.w, 0 <= y <= self.h
-        # player spaceship
-        if player.x < 0:
-            player.x = 0
-        if player.x > self.w - player.width:
-            player.x = self.w - player.width
+        # self.player spaceship
+        if self.player.x < 0:
+            self.player.x = 0
+        if self.player.x > self.w - self.player.width:
+            self.player.x = self.w - self.player.width
         # enemy
-        for enemy in enemies:
+        for enemy in self.enemies:
             if enemy.x <= 0:
                 enemy.dx = abs(enemy.dx) * 1
                 enemy.y += enemy.dy
@@ -445,32 +424,38 @@ class Game:
                 enemy.dx = abs(enemy.dx) * -1
                 enemy.y += enemy.dy
         # bullet
-        if bullet.y < 0:
-            bullet.fired = False
-            bullet.x = player.x + player.width / 2 - bullet.width / 2
-            bullet.y = player.y + bullet.height / 2
+        if self.bullet.y < 0:
+            self.bullet.fired = False
+            self.bullet.x = self.player.x + self.player.width / 2 - self.bullet.width / 2
+            self.bullet.y = self.player.y + self.bullet.height / 2
         # laser
-        for i in range(len(lasers)):
-            if lasers[i].y > self.h:
-                lasers[i].beamed = False
-                lasers[i].x = enemies[i].x + \
-                    enemies[i].width / 2 - lasers[i].width / 2
-                lasers[i].y = enemies[i].y + lasers[i].height / 2
+        for i in range(len(self.lasers)):
+            if self.lasers[i].y > self.h:
+                self.lasers[i].beamed = False
+                self.lasers[i].x = self.enemies[i].x + \
+                    self.enemies[i].width / 2 - self.lasers[i].width / 2
+                self.lasers[i].y = self.enemies[i].y + \
+                    self.lasers[i].height / 2
 
         # create frame by placing objects on the surface
-        scoreboard()
-        for laser in lasers:
+        self.scoreboard()
+        for laser in self.lasers:
             laser.draw()
-        for enemy in enemies:
+        for enemy in self.enemies:
             enemy.draw()
-        bullet.draw()
-        player.draw()
+        self.bullet.draw()
+        self.player.draw()
 
         pygame.display.update()
         frame_count += 1
 
-        total_time = total_time + single_frame_rendering_time
+        total_time = total_time + self.single_frame_rendering_time
         if total_time >= 1.0:
-            fps = frame_count
+            self.fps = frame_count
             frame_count = 0
             total_time = 0
+
+
+game = Game()
+while True:
+    game.play_step()
